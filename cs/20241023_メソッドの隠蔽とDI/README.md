@@ -53,7 +53,9 @@ public class DerivedClass : BaseClass
 }
 ```
 
-メソッドの修飾子に `new` を付けることで基本クラスのメソッドを隠蔽することができる。この挙動は C# の基礎として誰でも知っていることだと思う。ただ、知識と知っているだけで、実が伴っていない方が多いのではなかろうか。
+メソッドの修飾子に `new` を付けることで基本クラスのメソッドを隠蔽することができる。このとき、派生クラスのオブジェクトでありながら基本クラスとして扱われる場合、`new` された `M` メソッドは呼ばれず、基本クラスの `M` メソッドが呼ばれることになる。
+一方、`virtual` 修飾子を付けたメソッドをオーバーライドするようにすると、派生クラスのメソッドが呼ばれるようになる。
+この挙動は C# の基礎として当然の挙動である。
 
 ## DI でのサービス登録
 Dependency Injection（依存関係の注入）については DI コンテナを始めとしてよく知られる実装方法で、Blazor なんかでは気軽にこんな感じでサービスを登録している。
@@ -110,7 +112,17 @@ public class DerivedClass : BaseClass
 builder.Services.AddScoped<IBaseClass, DerivedClass>();
 ```
 
-こうしてしまうと、`DerivedClass.M` メソッドが実行されることがなく、「なぜだ！」と延々とデバッグに苦しむことになる。
+この場合、このサービスを使う側のコードは例えばこうだ。
+``` cs
+public class Sample(IBaseClass baseClass)
+{
+  private readonly IBaseClass _baseClass = baseClass;
+
+  public bool DoSomething() => _baseClass.M();
+}
+```
+
+こうなると、`baseClass` は `DerivedClass` オブジェクトなのにもかかわらず `DerivedClass.M` メソッドが実行されることがなく、「なぜだ！」と延々とデバッグに苦しむことになる。
 
 ## 解説
 まずメソッドの隠蔽という機能の使いどころを間違えてはいけません。この機能は、例えばサードパーティ製のクラスに対して機能拡張したいときなど、クラス定義を直接変更できない場合に活躍します。自作クラスの機能拡張であれば元のメソッドに `virtual` 修飾子を付けて、派生クラスでオーバーライドすべきです。
